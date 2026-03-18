@@ -34,6 +34,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors"
 }).addTo(map);
 
+const markerStore = {};
+
 function createMarkerIcon(color) {
   return L.divIcon({
     className: "",
@@ -71,6 +73,24 @@ function renderInfoPanel(item) {
   `;
 }
 
+function focusOnLocation(item) {
+  const marker = markerStore[item.title];
+  if (!marker) return;
+
+  const journeySection = document.getElementById("journey");
+  journeySection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  setTimeout(() => {
+    map.flyTo([item.lat, item.lng], 6, {
+      animate: true,
+      duration: 1.8
+    });
+
+    renderInfoPanel(item);
+    marker.openPopup();
+  }, 500);
+}
+
 journeyData.forEach((item, index) => {
   const category = categoryConfig[item.category];
 
@@ -87,6 +107,8 @@ journeyData.forEach((item, index) => {
     renderInfoPanel(item);
   });
 
+  markerStore[item.title] = marker;
+
   if (index === 0) {
     renderInfoPanel(item);
   }
@@ -100,7 +122,7 @@ function renderProjects() {
       const category = categoryConfig[item.category];
 
       return `
-        <article class="project-card">
+        <article class="project-card clickable-card" data-title="${item.title}">
           <span class="project-tag">${category.label}</span>
           <h3>${item.title}</h3>
           <p>${item.description}</p>
@@ -108,6 +130,19 @@ function renderProjects() {
       `;
     })
     .join("");
+
+  const cards = document.querySelectorAll(".clickable-card");
+
+  cards.forEach(card => {
+    card.addEventListener("click", () => {
+      const title = card.getAttribute("data-title");
+      const selectedItem = journeyData.find(item => item.title === title);
+
+      if (selectedItem) {
+        focusOnLocation(selectedItem);
+      }
+    });
+  });
 }
 
 renderProjects();
